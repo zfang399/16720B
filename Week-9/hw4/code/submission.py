@@ -304,20 +304,21 @@ def rodriguesResidual(K1, M1, p1, K2, p2, x):
     # Replace pass by your implementation
     w, r2, t2 = x[:-6], x[-6:-3], x[-3:]
 
-    W = w.reshape((3, w.shape[0] // 3))
+    W = w.reshape((3, w.shape[0] // 3)).T
     r2 = r2[:, None]
     t2 = t2[:, None]
 
     R2 = rodrigues(r2)
     print(R2.shape, t2.shape)
+
     M2 = np.hstack((R2, t2))
 
     C1 = K1 @ M1
     C2 = K2 @ M2
     homo_W = np.hstack((W, np.ones((W.shape[0], 1))))
     print(C1.shape, homo_W.shape)
-    p1_hat = C1 @ homo_W
-    p2_hat = C2 @ homo_W
+    p1_hat = (C1 @ homo_W.T).T
+    p2_hat = (C2 @ homo_W.T).T
     p1_hat = (p1_hat/p1_hat[:, -1][:, None])[:, 0:2]
     p2_hat = (p2_hat/p2_hat[:, -1][:, None])[:, 0:2]
 

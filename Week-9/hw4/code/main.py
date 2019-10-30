@@ -60,8 +60,8 @@ def main():
     E = sub.essentialMatrix(F_sevenpoint, K1, K2)
     M2_list = helper.camera2(E)
 
-    M1 = np.eye(3)
-    C1 = K1 @ np.hstack((M1, np.zeros((3, 1))))
+    M1 = np.hstack((np.eye(3), np.zeros((3, 1))))
+    C1 = K1 @ M1
     M2_list = helper.camera2(E)
 
     P = None
