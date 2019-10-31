@@ -212,7 +212,7 @@ Q5.1: RANSAC method.
 def ransacF(pts1, pts2, M):
     # Replace pass by your implementation
     no_points = pts1.shape[0]
-    max_iterations = 500
+    max_iterations = 400
     threshold = 0.002
 
     homo_pts1 = np.hstack((pts1, np.ones((no_points, 1))))
@@ -309,20 +309,18 @@ def rodriguesResidual(K1, M1, p1, K2, p2, x):
     t2 = t2[:, None]
 
     R2 = rodrigues(r2)
-    print(R2.shape, t2.shape)
 
     M2 = np.hstack((R2, t2))
 
     C1 = K1 @ M1
     C2 = K2 @ M2
     homo_W = np.hstack((W, np.ones((W.shape[0], 1))))
-    print(C1.shape, homo_W.shape)
     p1_hat = (C1 @ homo_W.T).T
     p2_hat = (C2 @ homo_W.T).T
     p1_hat = (p1_hat/p1_hat[:, -1][:, None])[:, 0:2]
     p2_hat = (p2_hat/p2_hat[:, -1][:, None])[:, 0:2]
 
-    residuals = np.concatenate([(p1-p1_hat).reshape([-1]), (p2-p2_hat).reshape([-1])])
+    residuals = np.concatenate(((p1-p1_hat).reshape([-1]), (p2-p2_hat).reshape([-1]))).astype(np.float)
     return residuals
 
 
@@ -349,10 +347,11 @@ def bundleAdjustment(K1, M1, p1, K2, M2_init, p2, P_init):
     x_init = np.append(x_init, t2.flatten())
 
     func = lambda x: rodriguesResidual(K1, M1, p1, K2, p2, x)
-    x_opt = scipy.optimize.leastsq(func, x_init)
+    x_opt, _ = scipy.optimize.leastsq(func, x_init)
+
 
     w_opt, r2_opt, t2_opt = x_opt[:-6], x_opt[-6:-3], x_opt[-3:]
-    W_opt = w_opt.reshape((2, w_opt.shape[0] // 3))
+    W_opt = w_opt.reshape((3, w_opt.shape[0] // 3)).T
     r2_opt = r2_opt[:, None]
     t2_opt = t2_opt[:, None]
 
@@ -360,3 +359,5 @@ def bundleAdjustment(K1, M1, p1, K2, M2_init, p2, P_init):
     M2_opt = np.hstack((R2_opt, t2_opt))
 
     return M2_opt, W_opt
+
+

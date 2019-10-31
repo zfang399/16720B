@@ -1,3 +1,7 @@
+'''
+Written by Akash Sharma
+October 2019
+'''
 import numpy as np
 import cv2
 import matplotlib.pyplot as plt
@@ -46,7 +50,7 @@ def main():
     # F, inliers = sub.ransacF(pts1, pts2, M)
     # helper.displayEpipolarF(im1, im2, F)
 
-    # Q5.3
+    # Q5.1
     noisy_corresp = np.load('../data/some_corresp_noisy.npz')
     noisy_pts1 = noisy_corresp['pts1']
     noisy_pts2 = noisy_corresp['pts2']
@@ -57,6 +61,7 @@ def main():
     F_sevenpoint, inliers = sub.ransacF(noisy_pts1, noisy_pts2, M)
     helper.displayEpipolarF(im1, im2, F_sevenpoint)
 
+    # Q5.3
     E = sub.essentialMatrix(F_sevenpoint, K1, K2)
     M2_list = helper.camera2(E)
 
@@ -70,7 +75,7 @@ def main():
         M2_inst = M2_list[:, :, i]
         C2_inst = K1 @ M2_inst
 
-        W_inst, err = sub.triangulate(C1, noisy_pts1[inliers], C2_inst, noisy_pts2[inliers])
+        W_inst, err = sub.triangulate(C1, noisy_pts1[inliers, :], C2_inst, noisy_pts2[inliers, :])
         print(W_inst.shape)
         print(err)
         if np.min(W_inst[:, -1]) > 0:
@@ -83,9 +88,8 @@ def main():
     ax1 = fig.add_subplot(121, projection='3d')
     ax1.scatter(P[:, 0], P[:, 1], P[:, 2])
 
-    M2, W_opt = sub.bundleAdjustment(K1, M1, noisy_pts1, K2, M2, noisy_pts2, P)
+    M2, W_opt = sub.bundleAdjustment(K1, M1, noisy_pts1[inliers, :], K2, M2, noisy_pts2[inliers, :], P)
 
-    fig = plt.figure()
     ax2 = fig.add_subplot(122, projection='3d')
     ax2.scatter(W_opt[:, 0], W_opt[:, 1], W_opt[:, 2])
     plt.show()
