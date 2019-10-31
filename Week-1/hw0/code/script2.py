@@ -1,10 +1,10 @@
 import imageio
 import matplotlib.pyplot as plt
 import numpy as np
-import warpA 
+import warpA
 
 # Read the image
-im = imageio.imread('./data/mug.jpg')
+im = imageio.imread('../data/mug.jpg')
 im = im / 255.0  # convert to float
 
 # convert to grayscale
@@ -56,5 +56,5 @@ axes[1, 0].imshow(warped_im, cmap=plt.get_cmap('gray'))
 axes[1, 0].set_title('warped')
 
 # write the plot to an image
-plt.savefig('./results/transformed.jpg')
+plt.savefig('../results/transformed.jpg')
 plt.show()
