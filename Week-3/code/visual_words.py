@@ -126,3 +126,5 @@ def compute_dictionary(num_workers=2):
     dictionary = kmeans.cluster_centers_
     print(dictionary.shape)
     np.save('dictionary', dictionary)
+    for f in filter_files:
+        os.remove(f)
