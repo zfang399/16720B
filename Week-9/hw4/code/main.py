@@ -63,7 +63,7 @@ def main():
     # helper.displayEpipolarF(im1, im2, F_eightpoint)
 
     F_sevenpoint, inliers = sub.ransacF(noisy_pts1, noisy_pts2, M)
-    helper.displayEpipolarF(im1, im2, F_sevenpoint)
+    # helper.displayEpipolarF(im1, im2, F_sevenpoint)
 
     # Q5.3
     E = sub.essentialMatrix(F_sevenpoint, K1, K2)
@@ -96,9 +96,9 @@ def main():
 
     ax2 = fig.add_subplot(122, projection='3d')
     ax2.scatter(W_opt[:, 0], W_opt[:, 1], W_opt[:, 2])
-    ax2.set_xlim3d(-5, 5)
-    ax2.set_ylim3d(-5, 5)
-    ax2.set_zlim3d(-8, 8)
+    # ax2.set_xlim3d(-5, 5)
+    # ax2.set_ylim3d(-5, 5)
+    # ax2.set_zlim3d(-8, 8)
     plt.show()
 
 if __name__ == "__main__":

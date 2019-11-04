@@ -304,15 +304,17 @@ Q5.3: Rodrigues residual.
             x, the flattened concatenationg of P, r2, and t2.
     Output: residuals, 4N x 1 vector, the difference between original and estimated projections
 '''
-def rodriguesResidual(x, K1, M1, p1, K2, p2):
+def rodriguesResidual(K1, M1, p1, K2, p2, x):
     # Replace pass by your implementation
     w, r2, t2 = x[:-6], x[-6:-3], x[-3:]
 
-    W = w.reshape((3, w.shape[0] // 3)).T
+    W = w.reshape((w.shape[0] // 3, 3))
     r2 = r2[:, None]
     t2 = t2[:, None]
-
+    print("t2.shape", t2.shape)
+    print("t2", t2)
     R2 = rodrigues(r2)
+    print("R2.shape", R2.shape)
 
     M2 = np.hstack((R2, t2))
 
@@ -324,7 +326,7 @@ def rodriguesResidual(x, K1, M1, p1, K2, p2):
     p1_hat = (p1_hat/p1_hat[:, -1][:, None])[:, 0:2]
     p2_hat = (p2_hat/p2_hat[:, -1][:, None])[:, 0:2]
 
-    residuals = np.concatenate([(p1-p1_hat).reshape([-1]), (p2-p2_hat).reshape([-1])]).astype(np.float)
+    residuals = np.concatenate([(p1-p1_hat).reshape([-1]), (p2-p2_hat).reshape([-1])])
     return residuals
 
 
@@ -349,16 +351,18 @@ def bundleAdjustment(K1, M1, p1, K2, M2_init, p2, P_init):
     r2 = invRodrigues(R2)
     x_init = np.append(x_init, r2.flatten())
     x_init = np.append(x_init, t2.flatten())
+    print("r2.shape:", r2.shape)
+    print("x_init.shape:", x_init.shape)
 
-    # func = lambda x: rodriguesResidual(K1, M1, p1, K2, p2, x)
-    x_opt, _ = scipy.optimize.leastsq(rodriguesResidual, x_init, args=(K1, M1, p1, K2, p2))
+    func = lambda x: rodriguesResidual(K1, M1, p1, K2, p2, x)
+    x_opt, _ = scipy.optimize.leastsq(func, x_init)
 
     w_opt, r2_opt, t2_opt = x_opt[:-6], x_opt[-6:-3], x_opt[-3:]
-    W_opt = w_opt.reshape((3, w_opt.shape[0] // 3)).T
+    W_opt = w_opt.reshape((w_opt.shape[0] // 3, 3))
     r2_opt = r2_opt[:, None]
     t2_opt = t2_opt[:, None]
 
-    R2_opt = invRodrigues(r2_opt)
+    R2_opt = rodrigues(r2_opt)
     M2_opt = np.hstack((R2_opt, t2_opt))
 
     return M2_opt, W_opt
