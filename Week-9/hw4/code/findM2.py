@@ -9,7 +9,6 @@ Q3.3:
     3. Save the correct M2, C2, and P to q3_3.npz
 '''
 
-
 def test_M2_solution(pts1, pts2, intrinsics, M):
     '''
     Estimate all possible M2 and return the correct M2 and 3D points P
@@ -36,7 +35,6 @@ def test_M2_solution(pts1, pts2, intrinsics, M):
         C2_inst = K1 @ M2_inst
 
         W_inst, err = sub.triangulate(C1, pts1, C2_inst, pts2)
-        print(err)
         if np.min(W_inst[:, -1]) > 0:
             P = W_inst
             M2 = M2_inst

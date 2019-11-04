@@ -40,7 +40,7 @@ def eightpoint(pts1, pts2, M):
     # Last column of V
     F = Vt[-1, :].reshape((3, 3))
     F = helper._singularize(F)
-    F = helper.refineF(F, pts1/M, pts2/M)
+    F = helper.refineF(F, scaled_homo_pts1[:, 0:2], scaled_homo_pts2[:, 0:2])
     F = np.transpose(T) @ F @ T
 
     return F
@@ -75,8 +75,7 @@ def sevenpoint(pts1, pts2, M):
 
     U, s, Vt = np.linalg.svd(A)
 
-    # Last two columns of V, normalized and reshaped
-    # F1 = (Vt[-1, :]/Vt[-1, -1]).reshape((3, 3)); F2 = (Vt[-2, :]/Vt[-2, -1]).reshape((3, 3))
+    # Last two columns of V, reshaped
     F1 = Vt[-1, :].reshape((3, 3)); F2 = Vt[-2, :].reshape((3, 3))
 
     # Obtain the last constraint the coefficients for the cubic polynomial
@@ -87,9 +86,12 @@ def sevenpoint(pts1, pts2, M):
     a3 = eq(1) - a2 - a1 - a0
 
     roots = np.roots([a3, a2, a1, a0])
+    # Retain only roots which are real
+    roots = roots[np.abs(np.imag(roots)) < 1e-8]
+    roots = np.real(roots)
+
     Farray = [root_i*F1 + (1-root_i)*F2 for root_i in roots]
     Farray = [helper._singularize(F) for F in Farray]
-    Farray = [helper.refineF(F, pts1/M, pts2/M) for F in Farray]
     Farray = [np.transpose(T) @ F @ T for F in Farray]
 
     return Farray
@@ -166,10 +168,10 @@ def epipolarCorrespondence(im1, im2, F, x1, y1):
     # Replace pass by your implementation
     x1 = np.int(np.round(x1))
     y1 = np.int(np.round(y1))
-    window_size = 10
+    window_size = 41
     window_offset = window_size // 2
     sigma = 3
-    search_length = 30
+    search_length = 41
 
     # Create a gaussian kernel of window size
     x = np.linspace(-sigma, sigma, window_size+1)
@@ -179,7 +181,7 @@ def epipolarCorrespondence(im1, im2, F, x1, y1):
     gkern2d = np.dstack((gkern2d, gkern2d, gkern2d))
 
     # Create an image patch around x1, y1
-    patch_im1 = im1[y1-window_offset:y1+window_offset, x1-window_offset:x1+window_offset]
+    patch_im1 = im1[y1-window_offset:y1+window_offset+1, x1-window_offset:x1+window_offset+1]
 
     # Get the epipolar line in im2 for x1, y1
     epi_line = F @ np.array([x1, y1, 1]).reshape((3, 1))
@@ -193,7 +195,7 @@ def epipolarCorrespondence(im1, im2, F, x1, y1):
     min_dist = float('inf')
     x2_min = 0; y2_min = 0
     for i in range(x2.shape[0]):
-        patch_im2 = im2[y2[i]-window_offset:y2[i]+window_offset, x2[i]-window_offset:x2[i]+window_offset]
+        patch_im2 = im2[y2[i]-window_offset:y2[i]+window_offset+1, x2[i]-window_offset:x2[i]+window_offset+1]
         dist = np.sum(np.square(patch_im1 - patch_im2)*gkern2d)
         if dist < min_dist:
             print(dist)
@@ -212,8 +214,8 @@ Q5.1: RANSAC method.
 def ransacF(pts1, pts2, M):
     # Replace pass by your implementation
     no_points = pts1.shape[0]
-    max_iterations = 400
-    threshold = 0.002
+    max_iterations = 500
+    threshold = 1.5
 
     homo_pts1 = np.hstack((pts1, np.ones((no_points, 1))))
     homo_pts2 = np.hstack((pts2, np.ones((no_points, 1))))
@@ -226,7 +228,11 @@ def ransacF(pts1, pts2, M):
         Farray = sevenpoint(seven_pts1, seven_pts2, M)
 
         for F in Farray:
-            dist = homo_pts2 * (F @ homo_pts1.T).T
+            epi_lines = (F @ homo_pts1.T).T
+            a = epi_lines[:, 0]; b = epi_lines[:, 1]; c = epi_lines[:, 2]
+
+            dist = homo_pts2 * epi_lines
+            dist = dist / np.sqrt(np.square(a[:, None]) + np.square(b[:, None]))
             dist = np.sum(dist, axis=-1)
             inliers = np.where(np.abs(dist) < threshold, True, False)
             no_inliers = np.sum(inliers)
@@ -236,6 +242,7 @@ def ransacF(pts1, pts2, M):
                 F_best = F
 
     # F_best = helper.refineF(F_best, pts1[best_inliers, :]/M, pts2[best_inliers, :]/M)
+    F_best = eightpoint(pts1[best_inliers, :], pts2[best_inliers, :], M)
     return F_best, best_inliers
 '''
 Q5.2: Rodrigues formula.
@@ -245,13 +252,13 @@ Q5.2: Rodrigues formula.
 def rodrigues(r):
     # Replace pass by your implementation
     theta = np.linalg.norm(r)
-    u = r/theta
-    u_cross = np.array([[0.0, -u[2], u[1]], [u[2], 0.0, -u[0]], [-u[1], u[0], 0.0]])
 
     if theta == 0:
         return np.eye(3)
     else:
-        R = np.eye(3)*np.cos(theta) + (1 - np.cos(theta)) * (u @ u.T) + u_cross * np.sin(theta)
+        u = r/theta
+        u_cross = np.array([[0.0, -u[2, 0], u[1, 0]], [u[2, 0], 0.0, -u[0, 0]], [-u[1, 0], u[0, 0], 0.0]])
+        R = np.eye(3) + np.sin(theta)*u_cross + (1-np.cos(theta))*(u@u.T - np.sum(np.square(u)*np.eye(3)))
         return R
 
 
@@ -261,16 +268,14 @@ Q5.2: Inverse Rodrigues formula.
     Output: r, a 3x1 vector
 '''
 def invRodrigues(R):
-    # Replace pass by your implementation
     A = (R - R.T)/2
-    rho = np.array([A[2, 1], A[0, 2], A[1, 0]])[:, None]
-    s = np.linalg.norm(rho)
-    c = (np.trace(R) - 1)/2
-
-    if s == 0 and c == 1:
+    rho = np.array(A[[2, 0, 1], [1, 2, 0]])[:, None]
+    s = np.float(np.linalg.norm(rho))
+    c = np.float((np.trace(R) - 1)/2)
+    if s < 1e-15 and c == 1.:
         r = np.array([0.0, 0.0, 0.0])[:, None]
         return r
-    elif s == 0 and c == -1:
+    elif s < 1e-15 and c == -1.:
         # find non-zero column of R+I
         v = None
         for i in range(R.shape[-1]):
@@ -289,7 +294,6 @@ def invRodrigues(R):
         r = u*theta
         return r
 
-
 '''
 Q5.3: Rodrigues residual.
     Input:  K1, the intrinsics of camera 1
@@ -300,7 +304,7 @@ Q5.3: Rodrigues residual.
             x, the flattened concatenationg of P, r2, and t2.
     Output: residuals, 4N x 1 vector, the difference between original and estimated projections
 '''
-def rodriguesResidual(K1, M1, p1, K2, p2, x):
+def rodriguesResidual(x, K1, M1, p1, K2, p2):
     # Replace pass by your implementation
     w, r2, t2 = x[:-6], x[-6:-3], x[-3:]
 
@@ -320,7 +324,7 @@ def rodriguesResidual(K1, M1, p1, K2, p2, x):
     p1_hat = (p1_hat/p1_hat[:, -1][:, None])[:, 0:2]
     p2_hat = (p2_hat/p2_hat[:, -1][:, None])[:, 0:2]
 
-    residuals = np.concatenate(((p1-p1_hat).reshape([-1]), (p2-p2_hat).reshape([-1]))).astype(np.float)
+    residuals = np.concatenate([(p1-p1_hat).reshape([-1]), (p2-p2_hat).reshape([-1])]).astype(np.float)
     return residuals
 
 
@@ -346,9 +350,8 @@ def bundleAdjustment(K1, M1, p1, K2, M2_init, p2, P_init):
     x_init = np.append(x_init, r2.flatten())
     x_init = np.append(x_init, t2.flatten())
 
-    func = lambda x: rodriguesResidual(K1, M1, p1, K2, p2, x)
-    x_opt, _ = scipy.optimize.leastsq(func, x_init)
-
+    # func = lambda x: rodriguesResidual(K1, M1, p1, K2, p2, x)
+    x_opt, _ = scipy.optimize.leastsq(rodriguesResidual, x_init, args=(K1, M1, p1, K2, p2))
 
     w_opt, r2_opt, t2_opt = x_opt[:-6], x_opt[-6:-3], x_opt[-3:]
     W_opt = w_opt.reshape((3, w_opt.shape[0] // 3)).T

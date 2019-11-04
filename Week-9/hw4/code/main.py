@@ -25,30 +25,34 @@ def main():
 
 
     # Q2.1
-    # F = sub.eightpoint(pts1, pts2, M)
-    # print("Fundamental Matrix: \n {} \n".format(F))
-    # helper.displayEpipolarF(im1, im2, F)
-    # np.savez('q2_1.npz', F=F, M=M)
+    # F_eightpoint = sub.eightpoint(pts1, pts2, M)
+    # print("Fundamental Matrix from eightpoint: \n {} \n".format(F_eightpoint))
+    # helper.displayEpipolarF(im1, im2, F_eightpoint)
+    # np.savez('q2_1.npz', F=F_eightpoint, M=M)
 
     # Q2.2
-    # chosen_points = [24, 54, 77, 73, 75, 66, 40]
-    # # chosen_points = np.random.randint(0, no_points, 7)
-    # print(chosen_points)
+    # chosen_points = [45, 29, 10, 59, 5, 53, 38]
     # pts1_seven = pts1[chosen_points]; pts2_seven = pts2[chosen_points]
-    # F_list = sub.sevenpoint(pts1_seven, pts2_seven, M)
-    # for F in F_list:
+    # Farray = sub.sevenpoint(pts1_seven, pts2_seven, M)
+    # for F in Farray:
     #     helper.displayEpipolarF(im1, im2, F)
-    # np.savez('q2_2.npz', F=F_list[0], M=M, pts1=pts1_seven, pts2=pts2_seven)
+    # F_sevenpoint = Farray[0]
+    # print("Fundamental Matrix from sevenpoint: \n {} \n".format(F_sevenpoint))
+    # np.savez('q2_2.npz', F=F_sevenpoint, M=M, pts1=pts1_seven, pts2=pts2_seven)
+
+    # Q3.1
+    # E = sub.essentialMatrix(F_eightpoint, K1, K2)
+    # print("Essential matrix obtained from F_eightpoint: \n {} \n".format(E))
 
     # Q3.3
     # Run findM2.py
 
     # Q4.1
-    # helper.epipolarMatchGUI(im1, im2, F)
+    # helper.epipolarMatchGUI(im1, im2, F_eightpoint)
 
-    # Q5.1
-    # F, inliers = sub.ransacF(pts1, pts2, M)
-    # helper.displayEpipolarF(im1, im2, F)
+    # Q4.2
+    # Run visualize.py
+
 
     # Q5.1
     noisy_corresp = np.load('../data/some_corresp_noisy.npz')
@@ -77,7 +81,6 @@ def main():
 
         W_inst, err = sub.triangulate(C1, noisy_pts1[inliers, :], C2_inst, noisy_pts2[inliers, :])
         print(W_inst.shape)
-        print(err)
         if np.min(W_inst[:, -1]) > 0:
             P = W_inst
             M2 = M2_inst
@@ -88,10 +91,14 @@ def main():
     ax1 = fig.add_subplot(121, projection='3d')
     ax1.scatter(P[:, 0], P[:, 1], P[:, 2])
 
+
     M2, W_opt = sub.bundleAdjustment(K1, M1, noisy_pts1[inliers, :], K2, M2, noisy_pts2[inliers, :], P)
 
     ax2 = fig.add_subplot(122, projection='3d')
     ax2.scatter(W_opt[:, 0], W_opt[:, 1], W_opt[:, 2])
+    ax2.set_xlim3d(-5, 5)
+    ax2.set_ylim3d(-5, 5)
+    ax2.set_zlim3d(-8, 8)
     plt.show()
 
 if __name__ == "__main__":

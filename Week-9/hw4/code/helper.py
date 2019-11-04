@@ -121,6 +121,7 @@ def epipolarMatchGUI(I1, I2, F):
     ax2.set_title('Verify that the corresponding point \n is on the epipolar line in this image')
     ax2.set_axis_off()
 
+
     def onclick(event):
         x, y = event.xdata, event.ydata
 
@@ -154,5 +155,5 @@ def epipolarMatchGUI(I1, I2, F):
         x2, y2 = sub.epipolarCorrespondence(I1, I2, F, xc, yc)
         ax2.plot(x2, y2, 'ro', MarkerSize=8, linewidth=2)
         plt.draw()
-    f.canvas.mpl_connect('button_press_event', onclick)
+    cid = f.canvas.mpl_connect('button_press_event', onclick)
     plt.show()

@@ -26,6 +26,7 @@ def main():
     x1 = templeCoords['x1']; y1 = templeCoords['y1']
 
     x2 = np.zeros((x1.shape[0])); y2 = np.zeros((x1.shape[0]))
+
     for i in range(x1.shape[0]):
         x2[i], y2[i] = sub.epipolarCorrespondence(im1, im2, F, x1[i], y1[i])
 
@@ -37,6 +38,7 @@ def main():
 
     plt.scatter(temple_pts2[:, 0], temple_pts2[:, 1])
     plt.show()
+
     intrinsics = np.load('../data/intrinsics.npz')
     K1 = intrinsics['K1']; K2 = intrinsics['K2']
     E = sub.essentialMatrix(F, K1, K2)
