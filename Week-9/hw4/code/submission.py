@@ -148,7 +148,6 @@ def triangulate(C1, pts1, C2, pts2):
     pts2_proj = (C2 @ W.T).T
     pts1_proj = (pts1_proj/pts1_proj[:, -1][:, None])[:, 0:2]
     pts2_proj = (pts2_proj/pts2_proj[:, -1][:, None])[:, 0:2]
-
     err = np.sum(np.square(pts1 - pts1_proj) + np.square(pts2 - pts2_proj))
 
     return W[:, 0:3], err
@@ -198,7 +197,6 @@ def epipolarCorrespondence(im1, im2, F, x1, y1):
         patch_im2 = im2[y2[i]-window_offset:y2[i]+window_offset+1, x2[i]-window_offset:x2[i]+window_offset+1]
         dist = np.sum(np.square(patch_im1 - patch_im2)*gkern2d)
         if dist < min_dist:
-            print(dist)
             min_dist = dist
             x2_min, y2_min = x2[i], y2[i]
 
@@ -214,8 +212,8 @@ Q5.1: RANSAC method.
 def ransacF(pts1, pts2, M):
     # Replace pass by your implementation
     no_points = pts1.shape[0]
-    max_iterations = 500
-    threshold = 1.5
+    max_iterations = 1000
+    threshold = 0.8
 
     homo_pts1 = np.hstack((pts1, np.ones((no_points, 1))))
     homo_pts2 = np.hstack((pts2, np.ones((no_points, 1))))
@@ -237,12 +235,10 @@ def ransacF(pts1, pts2, M):
             inliers = np.where(np.abs(dist) < threshold, True, False)
             no_inliers = np.sum(inliers)
             if no_inliers > np.sum(best_inliers):
-                print(np.sum(best_inliers))
                 best_inliers = inliers
                 F_best = F
 
-    # F_best = helper.refineF(F_best, pts1[best_inliers, :]/M, pts2[best_inliers, :]/M)
-    F_best = eightpoint(pts1[best_inliers, :], pts2[best_inliers, :], M)
+    #I observe that refining the solution using the inliers messes the fundamental matrix
     return F_best, best_inliers
 '''
 Q5.2: Rodrigues formula.
@@ -268,14 +264,15 @@ Q5.2: Inverse Rodrigues formula.
     Output: r, a 3x1 vector
 '''
 def invRodrigues(R):
+    tolerance = 1e-15
     A = (R - R.T)/2
     rho = np.array(A[[2, 0, 1], [1, 2, 0]])[:, None]
     s = np.float(np.linalg.norm(rho))
     c = np.float((np.trace(R) - 1)/2)
-    if s < 1e-15 and c == 1.:
+    if s < tolerance and (c - 1) < tolerance:
         r = np.array([0.0, 0.0, 0.0])[:, None]
         return r
-    elif s < 1e-15 and c == -1.:
+    elif s < 1e-15 and (c + 1) < tolerance:
         # find non-zero column of R+I
         v = None
         for i in range(R.shape[-1]):
@@ -311,11 +308,7 @@ def rodriguesResidual(K1, M1, p1, K2, p2, x):
     W = w.reshape((w.shape[0] // 3, 3))
     r2 = r2[:, None]
     t2 = t2[:, None]
-    print("t2.shape", t2.shape)
-    print("t2", t2)
     R2 = rodrigues(r2)
-    print("R2.shape", R2.shape)
-
     M2 = np.hstack((R2, t2))
 
     C1 = K1 @ M1
@@ -351,8 +344,6 @@ def bundleAdjustment(K1, M1, p1, K2, M2_init, p2, P_init):
     r2 = invRodrigues(R2)
     x_init = np.append(x_init, r2.flatten())
     x_init = np.append(x_init, t2.flatten())
-    print("r2.shape:", r2.shape)
-    print("x_init.shape:", x_init.shape)
 
     func = lambda x: rodriguesResidual(K1, M1, p1, K2, p2, x)
     x_opt, _ = scipy.optimize.leastsq(func, x_init)
@@ -366,5 +357,3 @@ def bundleAdjustment(K1, M1, p1, K2, M2_init, p2, P_init):
     M2_opt = np.hstack((R2_opt, t2_opt))
 
     return M2_opt, W_opt
-
-
